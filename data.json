@@ -1,0 +1,27 @@
+{
+    "numbers": [
+        1,
+        2,
+        3,
+        7,
+        8,
+        8,
+        8,
+        8,
+        9,
+        10
+    ],
+    "statistics": {
+        "mean": 6.4,
+        "median": 8.0,
+        "mode ": 4,
+        "range ": 9,
+        "variance": 10.044444444444446,
+        "standard_deviation": 3.1692971530679235,
+        "interquartile_range ": 5,
+        "twenty_fifth_percentile ": 2,
+        "seventy_fifth_percentile ": 8,
+        "skewness ": -0.7897259188119589,
+        "kurtosis ": -0.8807568273609077
+    }
+}
