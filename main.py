@@ -1,15 +1,22 @@
+import math
 import random
 import sys
 import datetime
-from scipy.stats import skew
 import pandas as pd
 import json
+
 
 numbers = []
 population = False
 N = 0
 Mean = 0
 Variance = 0
+QUARTER = 25
+THIRD_QUARTER = 75
+WINSORIZED_AMOUNT = 20
+H0Mean = 5
+Value = 4
+p = 0
 
 
 ## Initializations and other setup method exist in this plane, as well as handling of data file and output file
@@ -24,6 +31,8 @@ def is_population():
     else:
         print("No known type...aborting")
         sys.exit(1)
+
+
 def initialize_json():
     data = {
         "numbers": [],
@@ -93,21 +102,120 @@ def compute_statistics():
         'range ': Range(),
         'variance': variance(),
         'standard_deviation': standard_deviation(),
-        'interquartile_range ' : interquartile_range(numbers),
-        'twenty_fifth_percentile ' : percentile(25),
-        'seventy_fifth_percentile ' : percentile(75),
-        'skewness ' : skewness(),
-        'kurtosis ' : kurtosis(),
-
+        'interquartile_range ': interquartile_range(numbers),
+        'twenty_fifth_percentile ': percentile(QUARTER),
+        'seventy_fifth_percentile ': percentile(THIRD_QUARTER),
+        'skewness ': skewness(),
+        'kurtosis ': kurtosis(),
+        'mad ': mad(),
+        'winsorized_mean ': winsorized_mean(WINSORIZED_AMOUNT),
+        'covariance ': covariance([0, 5, 5, 5, 5, 5, 5, 10, 10, 10], 5.5),
+        'correlation_coefficient ': correlation([0, 5, 5, 5, 5, 5, 5, 10, 10, 10], 6),
+        't_statistic ': t_statistic(H0Mean),
+        'z_statistic ': z_score(Value),
+        'p_value ' : p_value(5,2, "two"),
+        'confidence_test ' : confidence(0.05, p),
 
     }
     return stats
 
-def kurtosis():
-    standard_deviation =  Variance ** (1/2)
+def confidence(confidence_amount, p_value):
+    if (p_value <= confidence_amount):
+        message = "Reject Null Hypothesis"
+        print(message)
+        return message
+    else:
+        message = "Fail to reject Null Hypothesis"
+        print(message)
+        return message
+
+def z_score(Value):
+    z = round((Value - Mean) / (Variance ** (1 / 2)), 3)
+    print("Z-Score for " + str(Value) + " is : " + str(z))
+    return z
+
+
+def correlation(numbersY, meanY):
+    summation_x_square, summation_y_square, summation_xy = 0, 0, 0
+    for x in numbers:
+        summation_x_square += (x - Mean) ** 2
+    for y in numbersY:
+        summation_y_square += (y - meanY) ** 2
+    for x, y in zip(numbers, numbersY):
+        summation_xy += (x - Mean) * (y - meanY)
+
+    correlation = summation_xy / ((summation_y_square * summation_x_square) ** (1 / 2))
+    correlation = round(correlation, 3)
+    print("Pearson Correlation Coefficient : " + str(correlation))
+
+
+
+def phi(z):
+    return (1.0 + math.erf(z / math.sqrt(2.0))) / 2.0
+
+
+def t_cdf(t, df):
+    # Approximate the CDF of the Student's t-distribution
+    gamma_term = math.gamma((df + 1) / 2) / (math.sqrt(df * math.pi) * math.gamma(df / 2))
+    return 0.5 + (t * gamma_term * (1 + (t**2 / df))**(-((df + 1) / 2)))
+def p_value(mean_tested, standard_deviation_pop, type):
+    global p
+    if (type != "one" and type != "two"):
+        return None
+    if (N <= 30 and standard_deviation_pop == None):
+        score = (Mean - mean_tested)/((Variance ** (1/2))/(N**(1/2)))
+        if type == 'two':
+            p_value = 2 * (1 - phi(abs(score)))
+        elif type == 'one':
+            p_value = 1 - phi(score) if score > 0 else phi(score)
+    elif standard_deviation_pop is not None:
+            # Z-Test
+        z_score = (Mean - mean_tested) / (standard_deviation_pop / math.sqrt(N))
+        if type == 'two':
+            p_value = 2 * (1 - phi(abs(z_score)))
+        elif type == 'one':
+            p_value = 1 - phi(z_score) if z_score > 0 else phi(z_score)
+
+    p_value = round(p_value, 3)
+    print("p-value : " + str(p_value))
+    p = p_value
+    return p_value
+
+def t_statistic(mean):
+    t = round((Mean - mean) / ((Variance ** (1 / 2)) / (N ** (1 / 2))), 4)
+    print("t-Statistic : " + str(t))
+    return t
+
+
+def winsorized_mean(amount):
+    lower_bound = int((amount / 100) * N)
+    upper_bound = int(((100 - amount) / 100) * N)
+    summation = 0
+    for x in numbers[lower_bound: upper_bound]:
+        summation += x
+
+    summation += lower_bound * numbers[lower_bound]
+    summation += (N - upper_bound) * numbers[upper_bound - 1]
+    winsorized_mean = summation / (N)
+    print("Winsorized Mean : " + str(winsorized_mean))
+    return winsorized_mean
+
+
+def mad():
     summation = 0
     for x in numbers:
-        summation += ((x-Mean)/standard_deviation)**4
+        summation += abs(x - Mean)
+    mad = summation / N
+    mad = round(mad, 3)
+    print("MAD : " + str(mad))
+    return mad
+
+
+def kurtosis():
+    standard_deviation = Variance ** (1 / 2)
+    summation = 0
+    for x in numbers:
+        summation += ((x - Mean) / standard_deviation) ** 4
 
     # if population:
     #     # Population kurtosis formula
@@ -116,29 +224,51 @@ def kurtosis():
     #     # Sample kurtosis formula
     result = ((N * (N + 1)) / ((N - 1) * (N - 2) * (N - 3))) * summation - (3 * (N - 1) ** 2) / ((N - 2) * (N - 3))
 
-
-    print("Kurtosis : " + str(result) + "    !!!Using the sample formulat, population formula is in the works")
+    result = round(result, 3)
+    print("Kurtosis : " + str(result) + "    !!!Using the sample formula, population formula is in the works")
     return result
 
+
+def covariance(numbersY, meanY):
+    if (len(numbersY) != N):
+        return None
+    summation = 0
+    for x, y in zip(numbers, numbersY):
+        summation += (x - Mean) * (y - meanY)
+
+    if population:
+        covariance = summation / N
+    else:
+        covariance = summation / (N - 1)
+
+    covariance = round(covariance, 3)
+    print("Covariance : " + str(covariance))
+    return covariance
+
+
 def skewness():
-    standard_deviation = Variance ** (1/2)
+    standard_deviation = Variance ** (1 / 2)
     summation = 0
     for x in numbers:
         summation += (x - Mean) ** 3
-
 
     if standard_deviation == 0:  # Avoid division by zero
         return 0
 
     if (population):
         third_moment = summation / N
-        result = (N / ((N - 1) * (N - 2))) * (third_moment / (standard_deviation ** 3))*N ## I do not know why multiplying by N works, but it does
+        result = (N / ((N - 1) * (N - 2))) * (third_moment / (
+                standard_deviation ** 3)) * N  ## I do not know why multiplying by N works, but it does
     else:
         third_moment = summation / (N - 1)
-        result = ((N * (N - 1)) / ((N - 2))) * (third_moment / (standard_deviation ** 3))/N ## I do not know why dividing by N works, but it does
+        result = ((N * (N - 1)) / ((N - 2))) * (
+                third_moment / (standard_deviation ** 3)) / N  ## I do not know why dividing by N works, but it does
 
-    print("Skewness : " + str(result) + "     !!!This value can be wrong, it is closer to an estimate than a calculation")
+    result = round(result, 3)
+    print(
+        "Skewness : " + str(result) + "     !!!This value can be wrong, it is closer to an estimate than a calculation")
     return result
+
 
 def interquartile_range(array):
     n = len(array)
@@ -153,6 +283,7 @@ def interquartile_range(array):
     interquartile_range = median(right_half) - median(left_half)
     print("InterQuartile Range : " + str(interquartile_range))
     return interquartile_range
+
 
 def mean():
     global numbers, Mean
@@ -177,29 +308,33 @@ def variance():
     else:
         Variance = summation / (N - 1)
 
+    Variance = round(Variance, 3)
     print("Variance is : " + str(Variance))
     return Variance
 
+
 def standard_deviation():
-    sd = pow(Variance, 1/2)
-    print ("Standard Deviation : " + str(sd))
+    sd = pow(Variance, 1 / 2)
+    print("Standard Deviation : " + str(sd))
     return sd
+
 
 def median(number_list):
     median = 0
     n = len(number_list)
     if (n % 2 == 0):
-        median = (number_list[int(n/2 - 1)] + number_list[int(n/2)]) / 2
+        median = (number_list[int(n / 2 - 1)] + number_list[int(n / 2)]) / 2
     else:
-        median =  (number_list[int((n/2))])
+        median = (number_list[int((n / 2))])
 
     if (N == n):
         print("Median : " + str(median))
 
     return median
 
+
 def percentile(percentile):
-    index = int((percentile/100)*(N + 1))
+    index = int((percentile / 100) * (N + 1))
     value = numbers[index - 1]
     print("The value at the " + str(percentile) + "th percentile is : " + str(value))
     return value
@@ -220,7 +355,6 @@ def mode():
             max = key
             maxOcc = count
 
-
     print("Mode : " + str(max) + " at : " + str(maxOcc) + " occurences")
     return maxOcc
 
@@ -232,7 +366,6 @@ def Range():
 
 
 initialize_json()
-write_csv(10, 10)
 read_csv()
 stats = compute_statistics()
-update_json_file(numbers,stats)
+update_json_file(numbers, stats)

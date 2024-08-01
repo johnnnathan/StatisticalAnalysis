@@ -1,27 +1,35 @@
 {
     "numbers": [
-        1,
+        0,
         2,
-        3,
+        4,
+        4,
         7,
         8,
         8,
         8,
-        8,
-        9,
+        10,
         10
     ],
     "statistics": {
-        "mean": 6.4,
-        "median": 8.0,
-        "mode ": 4,
-        "range ": 9,
-        "variance": 10.044444444444446,
-        "standard_deviation": 3.1692971530679235,
-        "interquartile_range ": 5,
+        "mean": 6.1,
+        "median": 7.5,
+        "mode ": 3,
+        "range ": 10,
+        "variance": 11.656,
+        "standard_deviation": 3.4140884581393025,
+        "interquartile_range ": 4,
         "twenty_fifth_percentile ": 2,
         "seventy_fifth_percentile ": 8,
-        "skewness ": -0.7897259188119589,
-        "kurtosis ": -0.8807568273609077
+        "skewness ": -0.548,
+        "kurtosis ": -0.791,
+        "mad ": 2.88,
+        "winsorized_mean ": 6.3,
+        "covariance ": 8.778,
+        "correlation_coefficient ": null,
+        "t_statistic ": 1.0189,
+        "z_statistic ": -0.615,
+        "p_value ": 0.082,
+        "confidence_test ": "Fail to reject Null Hypothesis"
     }
 }
