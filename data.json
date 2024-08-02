@@ -17,7 +17,7 @@
         "mode ": 3,
         "range ": 10,
         "variance": 11.656,
-        "standard_deviation": 3.4140884581393025,
+        "standard_deviation": 3.414,
         "interquartile_range ": 4,
         "twenty_fifth_percentile ": 2,
         "seventy_fifth_percentile ": 8,
@@ -29,7 +29,11 @@
         "correlation_coefficient ": null,
         "t_statistic ": 1.0189,
         "z_statistic ": -0.615,
-        "p_value ": 0.082,
-        "confidence_test ": "Fail to reject Null Hypothesis"
+        "p_value ": 0.0,
+        "confidence_test ": "Reject Null Hypothesis",
+        "confidence_interval ": [
+            3.658,
+            8.542
+        ]
     }
 }

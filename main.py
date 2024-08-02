@@ -4,7 +4,7 @@ import sys
 import datetime
 import pandas as pd
 import json
-
+from scipy import stats
 
 numbers = []
 population = False
@@ -113,8 +113,9 @@ def compute_statistics():
         'correlation_coefficient ': correlation([0, 5, 5, 5, 5, 5, 5, 10, 10, 10], 6),
         't_statistic ': t_statistic(H0Mean),
         'z_statistic ': z_score(Value),
-        'p_value ' : p_value(5,2, "two"),
+        'p_value ' : p_value(1.5,3.03, "two"),
         'confidence_test ' : confidence(0.05, p),
+        'confidence_interval ' : confidence_interval(0.95)
 
     }
     return stats
@@ -158,28 +159,39 @@ def t_cdf(t, df):
     # Approximate the CDF of the Student's t-distribution
     gamma_term = math.gamma((df + 1) / 2) / (math.sqrt(df * math.pi) * math.gamma(df / 2))
     return 0.5 + (t * gamma_term * (1 + (t**2 / df))**(-((df + 1) / 2)))
-def p_value(mean_tested, standard_deviation_pop, type):
+
+
+def p_value(mean_tested, standard_deviation_pop, test_type):
     global p
-    if (type != "one" and type != "two"):
+    if test_type not in ["one", "two"]:
+        print("Invalid test type. Please use 'one' or 'two'.")
         return None
-    if (N <= 30 and standard_deviation_pop == None):
-        score = (Mean - mean_tested)/((Variance ** (1/2))/(N**(1/2)))
-        if type == 'two':
-            p_value = 2 * (1 - phi(abs(score)))
-        elif type == 'one':
-            p_value = 1 - phi(score) if score > 0 else phi(score)
+
+    # Calculate the t-score or z-score
+    if N <= 30 and standard_deviation_pop is None:
+        # T-Test
+        score = (Mean - mean_tested) / (Variance ** 0.5 / N ** 0.5)
+        df = N - 1  # degrees of freedom
+        if test_type == 'two':
+            p_value = 2 * (1 - stats.t.cdf(abs(score), df))
+        elif test_type == 'one':
+            p_value = 1 - stats.stats.t.cdf(score, df) if score > 0 else stats.stats.t.cdf(score, df)
     elif standard_deviation_pop is not None:
-            # Z-Test
+        # Z-Test
         z_score = (Mean - mean_tested) / (standard_deviation_pop / math.sqrt(N))
-        if type == 'two':
+        if test_type == 'two':
             p_value = 2 * (1 - phi(abs(z_score)))
-        elif type == 'one':
+        elif test_type == 'one':
             p_value = 1 - phi(z_score) if z_score > 0 else phi(z_score)
+    else:
+        print("Insufficient data for hypothesis testing.")
+        return None
 
     p_value = round(p_value, 3)
     print("p-value : " + str(p_value))
     p = p_value
     return p_value
+
 
 def t_statistic(mean):
     t = round((Mean - mean) / ((Variance ** (1 / 2)) / (N ** (1 / 2))), 4)
@@ -314,7 +326,7 @@ def variance():
 
 
 def standard_deviation():
-    sd = pow(Variance, 1 / 2)
+    sd = round(pow(Variance, 1 / 2), 3)
     print("Standard Deviation : " + str(sd))
     return sd
 
@@ -339,6 +351,22 @@ def percentile(percentile):
     print("The value at the " + str(percentile) + "th percentile is : " + str(value))
     return value
 
+def confidence_interval(confidence):
+    confidence_interval = [0,0]
+    if N <= 30:
+        t_score = stats.t.ppf((1 + confidence) / 2, N - 1)
+        margin_of_error = t_score * math.sqrt(Variance / N)
+        confidence_interval[0] = round(Mean - margin_of_error , 3)
+        confidence_interval[1] = round(Mean + margin_of_error , 3)
+    else:
+        # For large samples (N > 30), use the z-distribution
+        z_score = stats.norm.ppf((1 + confidence) / 2)
+        margin_of_error = z_score * math.sqrt(Variance / N)
+        confidence_interval[0] = round(Mean - margin_of_error, 3)
+        confidence_interval[1] = round(Mean + margin_of_error , 3)
+
+    print("Confidence Interval : " + str(confidence_interval[0]) + " - " + str(confidence_interval[1]))
+    return confidence_interval
 
 def mode():
     occurence_dict = dict()
@@ -363,6 +391,23 @@ def Range():
     Range = numbers[-1] - numbers[0]
     print("Range : " + str(Range))
     return Range
+
+def test_p_value():
+    global numbers, N, Mean, Variance
+
+    # Sample data
+    numbers = [5, -2, 3, -1, 0, 4, 2, -3, 6, 1]
+    N = len(numbers)
+    Mean = sum(numbers) / N
+    Variance = sum((x - Mean) ** 2 for x in numbers) / (N - 1)  # Sample variance
+
+    # Testing the p_value method
+    mean_tested = 0
+    standard_deviation_pop = None
+    test_type = "two"
+    p_val = p_value(mean_tested, standard_deviation_pop, test_type)
+    print(f"Tested p_value for mean_tested={mean_tested}, standard_deviation_pop={standard_deviation_pop}, test_type='{test_type}'")
+    print(f"Resulting p-value: {p_val}")
 
 
 initialize_json()
